@@ -63,12 +63,11 @@ class Main():
             else:
                 root_logger.setLevel("INFO")
 
+            # high verbosity loggers
             hpack_logger = logging.getLogger("hpack")
             hpack_logger.setLevel("WARNING")
-
             httpcore_logger = logging.getLogger("httpcore")
             httpcore_logger.setLevel("WARNING")
-
             httpx_logger = logging.getLogger("httpx")
             httpx_logger.setLevel("WARNING")
 
