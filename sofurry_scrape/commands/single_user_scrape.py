@@ -118,8 +118,13 @@ class SingleUserScrape:
 
             logger.info("on page `%s`", page_number)
 
-
-            page_result_response = await httpx_client.get(url, params=params_updated)
+            page_result_response=None
+            for i in range(5):
+                try:
+                    page_result_response = await httpx_client.get(url, params=params_updated)
+                    break
+                except httpx.HttpError as e:
+                    logger.exception("caught error, retrying")
             logger.debug("result from story api page `%s` was `%s`", page_number, page_result_response)
             page_result_response.raise_for_status()
 
@@ -128,8 +133,13 @@ class SingleUserScrape:
             item_collection = story_json_sanitized["items"]
 
 
+            if len(item_collection) == 0:
+                logger.info("empty item collection, maybe empty folder?")
+                should_stop_while_loop = True
+                break
 
-            for iter_item in story_json_sanitized["items"]:
+
+            for iter_item in item_collection:
                 if stop_event.is_set():
                     logger.info("stopping scrape stories early, stop event is set!")
                     should_stop_while_loop = True
@@ -137,6 +147,7 @@ class SingleUserScrape:
 
                 iter_submission_id = iter_item["id"]
 
+                logger.debug("page id: `%s`, submission id: `%s`", page_number, iter_submission_id)
                 if iter_submission_id in submission_id_cache:
                     # break out of loop, we already have this page
                     # this will get called for every item in the page but whatever its fine,quick and dirty
@@ -186,7 +197,13 @@ class SingleUserScrape:
         # now get the folders
         # we download the html and scrape using bs4 because there is no json api for us
         params_html = {"by": f"{uid}"}
-        html_response = await httpx_client.get(story_api_url_template, params=params_html)
+        html_response=None
+        for i in range(5):
+            try:
+                html_response = await httpx_client.get(story_api_url_template, params=params_html)
+                break
+            except httpx.HttpError as e:
+                logger.exception("caught exception, trying again")
         logger.debug("html response: `%s`", html_response)
         html_response.raise_for_status()
 
@@ -243,7 +260,13 @@ class SingleUserScrape:
 
         # get thumbnail
         thumbnail_path = iter_submission_folder / "thumbnail.png"
-        thumbnail_response = await httpx_client.get(submission_json["thumbnail"])
+        thumbnail_response = None
+        for i in range(5):
+            try:
+                thumbnail_response = await httpx_client.get(submission_json["thumbnail"])
+                break
+            except httpx.HttpError as e:
+                logger.exception("caught error, retrying")
         logger.debug("submission `%s`, thumbnail response: `%s`", submission_id, thumbnail_response)
         thumbnail_response.raise_for_status()
         logger.debug("submission `%s`, writing thumbnail to `%s`", submission_id, thumbnail_path)
@@ -285,7 +308,13 @@ class SingleUserScrape:
 
         # download html raw
         html_path = iter_submission_folder / f"{safe_submission_name} [{submission_id}].html"
-        html_response = await httpx_client.get(fixed_link)
+        html_response=None
+        for i in range(5):
+            try:
+                html_response = await httpx_client.get(fixed_link)
+                break
+            except httpx.HttpError as e:
+                logger.exception("caught error, retrying")
         logger.debug("submission `%s`, html response: `%s`", submission_id, html_response)
         html_response.raise_for_status()
         logger.debug("submission `%s`, writing html to `%s`", submission_id, html_path)
