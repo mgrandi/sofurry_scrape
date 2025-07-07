@@ -200,10 +200,11 @@ class SingleUserScrape:
         html_response=None
         for i in range(5):
             try:
-                html_response = await httpx_client.get(story_api_url_template, params=params_html)
+                html_response = await httpx_client.get(story_api_url_template, params=params_html, timeout=10.0)
                 break
-            except httpx.HttpError as e:
+            except httpx.HTTPError as e:
                 logger.exception("caught exception, trying again")
+                await asyncio.sleep(5)
         logger.debug("html response: `%s`", html_response)
         html_response.raise_for_status()
 
@@ -265,8 +266,9 @@ class SingleUserScrape:
             try:
                 thumbnail_response = await httpx_client.get(submission_json["thumbnail"])
                 break
-            except httpx.HttpError as e:
+            except httpx.HTTPError as e:
                 logger.exception("caught error, retrying")
+                await asyncio.sleep(5)
         logger.debug("submission `%s`, thumbnail response: `%s`", submission_id, thumbnail_response)
         thumbnail_response.raise_for_status()
         logger.debug("submission `%s`, writing thumbnail to `%s`", submission_id, thumbnail_path)
@@ -313,8 +315,10 @@ class SingleUserScrape:
             try:
                 html_response = await httpx_client.get(fixed_link)
                 break
-            except httpx.HttpError as e:
+            except httpx.HTTPError as e:
                 logger.exception("caught error, retrying")
+                await asyncio.sleep(5)
+
         logger.debug("submission `%s`, html response: `%s`", submission_id, html_response)
         html_response.raise_for_status()
         logger.debug("submission `%s`, writing html to `%s`", submission_id, html_path)
@@ -362,16 +366,16 @@ class SingleUserScrape:
                 logger.info("making initial calls to sofurry...")
 
                 # hit the main page to get some headers and cookies
-                homepage_resp = await httpx_client.get("https://www.sofurry.com")
+                homepage_resp = await httpx_client.get("https://www.sofurry.com", timeout=10.0)
                 logger.debug("homepage response: `%s`", homepage_resp)
                 homepage_resp.raise_for_status()
 
-                login_pg_resp = await httpx_client.get("https://www.sofurry.com/user/login")
+                login_pg_resp = await httpx_client.get("https://www.sofurry.com/user/login", timeout=10.0)
                 logger.debug("login page get response: `%s`", login_pg_resp)
                 login_pg_resp.raise_for_status()
 
                 logger.info("logging in to sofurry...")
-                login_post_resp = await httpx_client.post("https://www.sofurry.com/user/login", data=login_post_data)
+                login_post_resp = await httpx_client.post("https://www.sofurry.com/user/login", data=login_post_data, timeout=10.0)
                 logger.debug("login page post response: `%s`", login_post_resp)
                 login_post_resp.raise_for_status()
                 logger.info("login successful")
